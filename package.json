@@ -1,0 +1,14 @@
+{
+  "name": "enstruct",
+  "version": "1.0.0",
+  "description": "A library of data structures",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Stephen Hunt",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^4.2.3"
+  }
+}
