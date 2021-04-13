@@ -1,4 +1,4 @@
-import avltree from "../../dist/dictionary/avltree";
+import {AvlTree} from "../../dist/dictionary/avltree";
 import {genericDictionary} from "./dictbehavior";
 
-genericDictionary(avltree);
+genericDictionary("AVL Tree", (comp, es) => new AvlTree(comp, es));
