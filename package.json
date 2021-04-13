@@ -4,11 +4,14 @@
   "description": "A library of data structures",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "npx tsc -p src",
+    "buildTests": "npx tsc -p test",
+    "test": "mocha --recursive test"
   },
   "author": "Stephen Hunt",
   "license": "ISC",
   "devDependencies": {
+    "@types/mocha": "^8.2.2",
     "jsverify": "^0.8.4",
     "mocha": "^8.3.2",
     "typescript": "^4.2.3"
