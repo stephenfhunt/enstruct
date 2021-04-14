@@ -84,6 +84,44 @@ export function bstInsert<K, V>(root: BstNode<K, V>, key: K, value: V, compariso
     }
 }
 
+export function bstMin<K, V>(node: BstNode<K,V>|null): BstNode<K, V>|null {
+    if (node === null) return null;
+
+    let min = node;
+    while (min.left !== null) {
+        min = min.left;
+    }
+
+    return min;
+}
+
+export function bstDelete<K,V>(root: BstNode<K, V>|null, compare: Comparison<K>, key: K): BstNode<K, V>|null {
+    if (root === null) return null;
+
+    const comp = compare(key, root.key);
+    if (comp === ComparisonResult.LESS && root.left !== null) {
+        root.left = bstDelete(root.left, compare, key);
+    } else if (comp === ComparisonResult.GREATER && root.right !== null) {
+        root.right = bstDelete(root.right, compare, key);
+    } else { // EQUAL, so remove and rebalance
+        if (root.left === null || root.right === null) {
+            let tmp = root.left ?? root.right;
+            if (tmp === null) { // no children
+                root = null;
+            } else {
+                root = tmp;
+            }
+        } else {
+            const tmp = bstMin(root.right) ?? null;
+            if (tmp)
+                tmp.right = bstDelete(root.right, compare, tmp.key);
+            root = tmp;
+        }
+    }
+
+    return root;
+}
+
 export function bstSearch<K,V>(root: BstNode<K, V>|null, compare: Comparison<K>, key: K): V|undefined {
     if (root === null) return undefined;
 

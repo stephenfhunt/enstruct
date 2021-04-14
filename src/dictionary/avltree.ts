@@ -1,6 +1,6 @@
 import { DictEntries } from ".";
 import {Comparison, ComparisonResult, defaultCompare} from "..";
-import { bstCount, BstNode, bstSearch, bstTraverse, rotateLeft, rotateRight } from "./tree";
+import { bstCount, bstDelete, BstNode, bstSearch, bstTraverse, rotateLeft, rotateRight } from "./tree";
 
 function updateBalanceFactor<K, V>(node: AvlNode<K, V>): void {
     if (node.balanceFactor > 1 || node.balanceFactor < -1) {
@@ -82,6 +82,10 @@ class AvlNode<K, V> implements BstNode<K, V> {
         while (root.parent !== null) root = root.parent;
         return root;
     }
+
+    delete(key: K, comparison: Comparison<K>): AvlNode<K, V>|null {
+        return bstDelete(this, comparison, key) as AvlNode<K, V>|null;
+    }
 }
 
 export class AvlTree<K, V> implements Map<K, V> {
@@ -102,7 +106,9 @@ export class AvlTree<K, V> implements Map<K, V> {
     }
 
     delete(key: K): boolean {
-        throw new Error("Method not implemented.");
+        const present = this.has(key);
+        this.#root = this.#root?.delete(key, this.#comparison) ?? null;
+        return present;
     }
 
     forEach(callbackfn: (value: V, key: K, map: Map<K, V>) => void, thisArg?: any): void {

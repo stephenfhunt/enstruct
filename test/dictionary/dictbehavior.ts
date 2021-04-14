@@ -22,6 +22,24 @@ export function genericDictionary(name: string, factory: DictFactory): void {
             });
         });
 
+        it("can delete entries", function() {
+            jsc.assertForall(jsc.array(jsc.tuple([jsc.integer, jsc.string])), (entries: [key: number, value: string][]) => {
+                const map = factory(defaultCompare, entries);                    
+                const mapKeys = Array.from(map.keys());
+                let good = true;
+                while (mapKeys.length > 0) { 
+                    const k: number = mapKeys.shift() as number; // can't be undefined because of the while condition
+                    map.delete(k);
+                    good &&= !map.has(k);
+                    good &&= mapKeys.every(k => map.has(k));
+                }
+
+                good &&= map.size === 0;
+                return good;
+            });
+
+        });
+
         it("can be iterated", function() {
             jsc.assertForall(jsc.array(jsc.tuple([jsc.integer, jsc.string])), (entries: [key:number, value: string][]) => {
                 const map = factory(defaultCompare, entries);
