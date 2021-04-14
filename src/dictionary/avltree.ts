@@ -1,6 +1,6 @@
 import { DictEntries } from ".";
 import {Comparison, ComparisonResult, defaultCompare} from "..";
-import { bstCount, BstNode, bstSearch, rotateLeft, rotateRight } from "./tree";
+import { bstCount, BstNode, bstSearch, bstTraverse, rotateLeft, rotateRight } from "./tree";
 
 function updateBalanceFactor<K, V>(node: AvlNode<K, V>): void {
     if (node.balanceFactor > 1 || node.balanceFactor < -1) {
@@ -54,9 +54,9 @@ class AvlNode<K, V> implements BstNode<K, V> {
     constructor(public readonly key: K, public value: V) {}
 
     insert(key: K, value: V, comparison: Comparison<K>): AvlNode<K, V> {
-        if (comparison(this.key, key) === ComparisonResult.EQUAL) {
+        if (comparison(key, this.key) === ComparisonResult.EQUAL) {
             this.value = value;
-        } else if (comparison(this.key, key) === ComparisonResult.LESS) { // to the left
+        } else if (comparison(key, this.key) === ComparisonResult.LESS) { // to the left
             if (this.left === null) {
                 const newLeft = new AvlNode(key, value);
                 newLeft.parent = this;
@@ -134,18 +134,32 @@ export class AvlTree<K, V> implements Map<K, V> {
     }
 
     [Symbol.iterator](): IterableIterator<[K, V]> {
-        throw new Error("Method not implemented.");
+        return this.entries();
     }
+
     entries(): IterableIterator<[K, V]> {
-        throw new Error("Method not implemented.");
+        return bstTraverse(this.#root);
     }
-    keys(): IterableIterator<K> {
-        throw new Error("Method not implemented.");
+
+    *keys(): IterableIterator<K> {
+        for (const [k] of this.entries()) {
+            yield k;
+        }
     }
-    values(): IterableIterator<V> {
-        throw new Error("Method not implemented.");
+
+    *values(): IterableIterator<V> {
+        for (const [k, v] of this.entries()) {
+            yield v;
+        }
     }
-    [Symbol.toStringTag]: string;
+
+    get [Symbol.toStringTag](): string {
+        let result = "\n";
+        for (let [k, v] of this.entries()) {
+            result += "    " + k + " => " + v + "\n";
+        }
+        return result;
+    }
 
     static [Symbol.species] = AvlTree;
 }

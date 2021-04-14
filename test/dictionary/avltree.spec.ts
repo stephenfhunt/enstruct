@@ -1,4 +1,38 @@
+import jsc = require("jsverify");
+import chai = require("chai");
 import {AvlTree} from "../../dist/dictionary/avltree";
 import {genericDictionary} from "./dictbehavior";
+import { defaultCompare } from "../../dist";
 
-genericDictionary("AVL Tree", (comp, es) => new AvlTree(comp, es));
+describe("AVL Tree", function() {
+    genericDictionary("AVL Tree", (comp, es) => new AvlTree(comp, es));
+
+    it("is iterated in comparison order of the keys", function () {
+        jsc.assertForall(jsc.array(jsc.tuple([jsc.integer, jsc.string])), (entries: [key: number, value: string][]) => {
+            const map = new AvlTree(defaultCompare, entries);
+
+            let good = true;
+            let lastKey = Number.MIN_SAFE_INTEGER;
+
+            for (const [key] of map) {
+                good &&= key >= lastKey;
+                lastKey = key;
+            }
+
+            lastKey = Number.MIN_SAFE_INTEGER;
+            for (const [key] of map.entries()) {
+                good &&= key >= lastKey;
+                lastKey = key;
+            }
+
+            lastKey = Number.MIN_SAFE_INTEGER;
+            for (const key of map.keys()) {
+                good &&= key >= lastKey;
+                lastKey = key;
+            }
+
+            return good;
+        });
+    });
+
+});

@@ -1,7 +1,6 @@
 import jsc from "jsverify";
 import chai from "chai";
 import { Comparison, defaultCompare } from "../../dist";
-import { DictEntries } from "../../dist/dictionary";
 
 type DictFactory = <K,V>(comparison: Comparison<K>,
                          entries?: Iterable<readonly [K, V]>|readonly (readonly [K, V])[]|null) => Map<K, V>;
@@ -19,7 +18,37 @@ export function genericDictionary(name: string, factory: DictFactory): void {
                 // should have the same entries as a built-in Map
                 const stdMap = new Map(entries);
                 return map.size === stdMap.size && 
-                    entries.every(([k,v]) => map.get(k) === stdMap.get(k));
+                    entries.every(([k]) => map.get(k) === stdMap.get(k));
+            });
+        });
+
+        it("can be iterated", function() {
+            jsc.assertForall(jsc.array(jsc.tuple([jsc.integer, jsc.string])), (entries: [key:number, value: string][]) => {
+                const map = factory(defaultCompare, entries);
+
+                let good = true;
+
+                for (const [key, value] of map) {
+                    good &&= entries.some(([k,v]) => key === k && value === v);
+                }
+
+                for (const [key, value] of map.entries()) {
+                    good &&= entries.some(([k,v]) => key === k && value === v);
+                }
+
+                for (const key of map.keys()) {
+                    good &&= entries.some(([k,v]) => key === k);
+                }
+
+                for (const value of map.values()) {
+                    good &&= entries.some(([k,v]) => value === v);
+                }
+
+                map.forEach((value, key) => {
+                    good &&= entries.some(([k, v]) => key === k && value === v);
+                });
+
+                return good;
             });
         });
     })

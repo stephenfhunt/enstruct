@@ -67,9 +67,9 @@ export function bstInsert<K, V>(root: BstNode<K, V>, key: K, value: V, compariso
         };
     }
 
-    if (comparison(root.key, key) === ComparisonResult.EQUAL) {
+    if (comparison(key, root.key) === ComparisonResult.EQUAL) {
         root.value = value;
-    } else if (comparison(root.key, key) === ComparisonResult.LESS) { // to the left
+    } else if (comparison(key, root.key) === ComparisonResult.LESS) { // to the left
         if (root.left === null) {
             root.left = newNode();
         } else {
@@ -87,7 +87,7 @@ export function bstInsert<K, V>(root: BstNode<K, V>, key: K, value: V, compariso
 export function bstSearch<K,V>(root: BstNode<K, V>|null, compare: Comparison<K>, key: K): V|undefined {
     if (root === null) return undefined;
 
-    const comp = compare(root.key, key);
+    const comp = compare(key, root.key);
     if (comp === ComparisonResult.EQUAL) {
         return root.value;
     } else if (comp === ComparisonResult.LESS && root.left !== null) {
@@ -103,4 +103,12 @@ export function bstCount<K, V>(root: BstNode<K, V>|null): number {
     if (root !== null) {
         return 1 + bstCount(root.left) + bstCount(root.right);
     } else return 0;
+}
+
+export function *bstTraverse<K, V>(root: BstNode<K, V>|null): IterableIterator<[K, V]> {
+    if (root) {
+        yield* bstTraverse(root.left);
+        yield [root.key, root.value];
+        yield* bstTraverse(root.right);
+    }
 }
