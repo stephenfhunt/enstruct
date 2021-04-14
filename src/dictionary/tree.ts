@@ -1,49 +1,106 @@
 import {Comparison, ComparisonResult} from "..";
 
-export class BstNode<K, V> {
-    left: BstNode<K, V>|null;
-    right: BstNode<K, V>|null;
+type BinaryTreeNode = {
+    parent: BinaryTreeNode|null;
+    left: BinaryTreeNode|null;
+    right: BinaryTreeNode|null;
+}
 
-    constructor(public readonly key: K, 
-                public value: V) {
-        this.left = null;
-        this.right = null;
+export function rotateRight<T extends BinaryTreeNode>(rootNode: T): T {
+    const newRoot = rootNode.left;
+    if (newRoot === null) return rootNode;
+
+    rootNode.left = newRoot.right;
+    if (newRoot.right !== null) {
+        newRoot.right.parent = rootNode;
     }
 
-    insert(key: K, value: V, comparison: Comparison<K>): void {
-        if (comparison(this.key, key) === ComparisonResult.EQUAL) {
-            this.value = value;
-        } else if (comparison(this.key, key) === ComparisonResult.LESS) { // to the left
-            if (this.left === null) {
-                this.left = new BstNode(key, value);
-            } else {
-                this.left.insert(key, value, comparison);
-            }
-        } else { // to the right
-            if (this.right === null) {
-                this.right = new BstNode(key, value);
-            } else {
-                this.right.insert(key, value, comparison);
-            }
+    newRoot.parent = rootNode.parent;
+    if (rootNode.parent !== null) {
+        if (rootNode.parent.left === rootNode) {
+            rootNode.parent.left = newRoot;
+        } else {
+            rootNode.parent.right = newRoot
         }
     }
+    newRoot.right = rootNode; 
+    rootNode.parent = newRoot;
+    return newRoot as T;
+}
 
-    search(compare: Comparison<K>, key: K): V|undefined {
-        const comp = compare(this.key, key);
-        if (comp === ComparisonResult.EQUAL) {
-            return this.value;
-        } else if (comp === ComparisonResult.LESS && this.left !== null) {
-            return this.left.search(compare, key); 
-        } else if (comp === ComparisonResult.GREATER && this.right !== null) {
-            return this.right.search(compare, key);
+export function rotateLeft<T extends BinaryTreeNode>(rootNode: T): T {
+    const newRoot = rootNode.right;
+    if (newRoot === null) return rootNode;
+
+    rootNode.right = newRoot.left;
+    if (newRoot.left !== null) {
+        newRoot.left.parent = rootNode;
+    }
+
+    newRoot.parent = rootNode.parent;
+    if (rootNode.parent !== null) {
+        if (rootNode.parent.left === rootNode) {
+            rootNode.parent.left = newRoot;
+        } else {
+            rootNode.parent.right = newRoot
         }
+    }
+    newRoot.left = rootNode; 
+    rootNode.parent = newRoot;
+    return newRoot as T;
+}
 
-        return undefined;
+export interface BstNode<K, V> {
+    left: BstNode<K, V> | null;
+    right: BstNode<K, V> | null;
+    readonly key: K;
+    value: V;
+}
+
+export function bstInsert<K, V>(root: BstNode<K, V>, key: K, value: V, comparison: Comparison<K>): void {
+    function newNode(): BstNode<K, V> {
+        return {
+            left: null,
+            right: null,
+            key: key,
+            value: value
+        };
     }
 
-    count(): number {
-        const lefts = this.left?.count() ?? 0;
-        const rights = this.right?.count() ?? 0;
-        return lefts + rights + 1;
+    if (comparison(root.key, key) === ComparisonResult.EQUAL) {
+        root.value = value;
+    } else if (comparison(root.key, key) === ComparisonResult.LESS) { // to the left
+        if (root.left === null) {
+            root.left = newNode();
+        } else {
+            bstInsert(root.left, key, value, comparison);
+        }
+    } else { // to the right
+        if (root.right === null) {
+            root.right = newNode();
+        } else {
+            bstInsert(root.right, key, value, comparison);
+        }
     }
+}
+
+export function bstSearch<K,V>(root: BstNode<K, V>|null, compare: Comparison<K>, key: K): V|undefined {
+    if (root === null) return undefined;
+
+    const comp = compare(root.key, key);
+    if (comp === ComparisonResult.EQUAL) {
+        return root.value;
+    } else if (comp === ComparisonResult.LESS && root.left !== null) {
+        return bstSearch(root.left, compare, key);
+    } else if (comp === ComparisonResult.GREATER && root.right !== null) {
+        return bstSearch(root.right, compare, key);
+    }
+
+    return undefined;
+}
+
+export function bstCount<K, V>(root: BstNode<K, V>|null): number {
+    if (root !== null) {
+        return 1 + bstCount(root.left) + bstCount(root.right);
+    } else return 0;
 }
