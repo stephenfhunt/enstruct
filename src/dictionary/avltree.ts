@@ -1,7 +1,11 @@
 import { DictEntries } from ".";
 import {Comparison, ComparisonResult, defaultCompare} from "..";
-import { bstCount, bstFindNode, bstFindReplacement, BstNode, bstSearch, bstTraverse, rotateLeft, rotateRight } from "./tree";
+import { bstCount, bstFindNode, bstFindReplacement, BstNode, bstSearch, bstTraverse, rotateLeft, rotateRight } from "./bst";
 
+/**
+ * A binary-search tree node augmented with a height field to allow tracking
+ * balancing in an AVL tree.
+ */
 class AvlNode<K, V> implements BstNode<K, V> {
     left: AvlNode<K, V>|null = null;
     right: AvlNode<K, V>|null = null;
@@ -127,6 +131,10 @@ class AvlNode<K, V> implements BstNode<K, V> {
     }
 }
 
+/**
+ * A drop-in replacement for Map<K,V> implemented by an
+ * AVL tree.
+ */
 export class AvlTree<K, V> implements Map<K, V> {
     #root: AvlNode<K, V>|null = null;
     #comparison: Comparison<K>;

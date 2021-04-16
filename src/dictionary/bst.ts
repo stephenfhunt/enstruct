@@ -1,5 +1,11 @@
 import {Comparison, ComparisonResult} from "..";
 
+/**
+ * utilities useful for binary search trees
+ * makes no assumptions about the implementation details regarding 
+ * balancing or augmentation of the tree
+ */
+
 type BinaryTreeNode = {
     parent: BinaryTreeNode|null;
     left: BinaryTreeNode|null;
