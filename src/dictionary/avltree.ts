@@ -1,90 +1,138 @@
 import { DictEntries } from ".";
 import {Comparison, ComparisonResult, defaultCompare} from "..";
-import { bstCount, bstDelete, BstNode, bstSearch, bstTraverse, rotateLeft, rotateRight } from "./tree";
+import { bstCount, BstNode, bstSearch, bstTraverse } from "./tree";
 
-function updateBalanceFactor<K, V>(node: AvlNode<K, V>): void {
-    if (node.balanceFactor > 1 || node.balanceFactor < -1) {
-        rebalance(node);
-    } else if (node.parent !== null) {
-        if (node.parent.left === node) {
-            node.parent.balanceFactor++;
-        } else if (node.parent.right === node) {
-            node.parent.balanceFactor--;
+function rotateLeft<K, V>(node: AvlNode<K, V>) {
+    const parent = node.parent;
+    const right = node.right;
+    const left = right?.left ?? null;
+
+    if (right !== null) right.left = node;
+    node.parent = right;
+    node.right = left;
+
+    if (left !== null) {
+        left.parent = node;
+    }
+
+    if (parent !== null) {
+        if (node === parent.left) {
+            parent.left = right;
+        } else if (node === parent.right) {
+            parent.right = right;
         }
 
-        if (node.parent.balanceFactor !== 0) {
-            updateBalanceFactor(node.parent);
-        }
+        if (right !== null) right.parent = parent;
+    } else {
+        // right is the new root
+        if (right !== null) right.parent = null;
     }
 }
 
-function avlRotateLeft<K,V>(rootNode: AvlNode<K,V>): void {
-    const newRoot: AvlNode<K,V> = rotateLeft(rootNode);
-    rootNode.balanceFactor += 1 - Math.min(newRoot.balanceFactor, 0);
-    newRoot.balanceFactor += 1 + Math.max(rootNode.balanceFactor, 0);
-}
+function rotateRight<K, V>(node: AvlNode<K, V>) {
+    const parent = node.parent;
+    const left = node.left;
+    const right = left?.right ?? null;
 
-function avlRotateRight<K,V>(rootNode: AvlNode<K,V>): void {
-    const newRoot: AvlNode<K,V> = rotateRight(rootNode);
-    rootNode.balanceFactor -= 1 + Math.max(newRoot.balanceFactor, 0);
-    newRoot.balanceFactor -= 1 - Math.min(rootNode.balanceFactor, 0);
-}
+    if (left !== null) left.right = node;
+    node.parent = left;
+    node.left = right;
 
-function rebalance<K, V>(node: AvlNode<K, V>): void {
-    if (node.balanceFactor < 0) {
-        if ((<AvlNode<K,V>>node?.right)?.balanceFactor > 0) {
-            avlRotateRight(node.right as AvlNode<K,V>);
-        }
-        avlRotateLeft(node);
-    } else if (node.balanceFactor > 0) {
-        if ((<AvlNode<K,V>>node?.left)?.balanceFactor < 0) {
-            avlRotateLeft(node.left as AvlNode<K,V>);
+    if (right !== null) {
+        right.parent = node;
+    }
+
+    if (parent !== null) {
+        if (node === parent.left) {
+            parent.left = left;
+        } else if (node === parent.right) {
+            parent.right = left;
         }
 
-        avlRotateRight(node);
+        if (left !== null) left.parent = parent;
+    } else {
+        // left is the new root
+        if (left !== null) left.parent = null;
     }
 }
 
 class AvlNode<K, V> implements BstNode<K, V> {
     left: AvlNode<K, V>|null = null;
     right: AvlNode<K, V>|null = null;
-    parent: AvlNode<K, V>|null = null;
-    balanceFactor: number = 0;
+    height: number = 1;
 
-    constructor(public readonly key: K, public value: V) {}
+    constructor(public readonly key: K, 
+                public value: V, 
+                public parent: AvlNode<K, V>|null) {}
 
     insert(key: K, value: V, comparison: Comparison<K>): AvlNode<K, V> {
-        if (comparison(key, this.key) === ComparisonResult.EQUAL) {
-            this.value = value;
-        } else if (comparison(key, this.key) === ComparisonResult.LESS) { // to the left
-            if (this.left === null) {
-                const newLeft = new AvlNode(key, value);
-                newLeft.parent = this;
-                this.left = newLeft;
-                updateBalanceFactor(newLeft);
-            } else {
-                this.left.insert(key, value, comparison);
-            }
+        const comparisonResult = comparison(key, this.key);
+        let newNode = null;
 
+        if (comparisonResult === ComparisonResult.EQUAL) {
+            this.value = value;
+            newNode = this;
+        } else if (comparisonResult === ComparisonResult.LESS) { // to the left
+            if (this.left === null) {
+                newNode = new AvlNode(key, value, this);
+                this.left = newNode;
+            } else {
+                newNode = this.left.insert(key, value, comparison);
+            }
         } else { // to the right
             if (this.right === null) {
-                const newRight = new AvlNode(key, value);
-                newRight.parent = this;
-                this.right = newRight;
-                updateBalanceFactor(newRight);
+                newNode = new AvlNode(key, value, this);
+                this.right = newNode;
             } else {
-                this.right.insert(key, value, comparison);
+                newNode = this.right.insert(key, value, comparison);
             }
         }
 
-        // find the new root
-        let root: AvlNode<K, V> = this;
-        while (root.parent !== null) root = root.parent;
-        return root;
+        this.updateHeight();
+        this.balanceAfterInsert();
+
+        return newNode;
     }
 
-    delete(key: K, comparison: Comparison<K>): AvlNode<K, V>|null {
-        return bstDelete(this, comparison, key) as AvlNode<K, V>|null;
+    getBalanceFactor(): number {
+        const leftHeight = this.left?.height ?? 0;
+        const rightHeight = this.right?.height ?? 0;
+        return rightHeight - leftHeight;
+    }
+
+    updateHeight(): void {
+        const leftHeight = this.left?.height ?? 0;
+        const rightHeight = this.right?.height ?? 0;
+        this.height = Math.max(leftHeight, rightHeight) + 1;
+    }
+
+    balanceAfterInsert(): void {
+        const balanceFactor = this.getBalanceFactor();
+        if (balanceFactor < -1 || balanceFactor > 1) {
+            let child;
+            if (balanceFactor < 0) {
+                const left = this.left as AvlNode<K, V>;
+                child = left;
+                if (left.getBalanceFactor() < 0) {
+                    rotateRight(this);
+                } else {
+                    rotateLeft(left);
+                    rotateRight(this);
+                }
+            }  else {
+                const right = this.right as AvlNode<K, V>;
+                child = right;
+                if (right.getBalanceFactor() < 0) {
+                    rotateRight(right);
+                    rotateLeft(this);
+                } else {
+                    rotateLeft(this);
+                }
+            }
+
+            child.updateHeight();
+            this.updateHeight();
+        }
     }
 }
 
@@ -107,7 +155,7 @@ export class AvlTree<K, V> implements Map<K, V> {
 
     delete(key: K): boolean {
         const present = this.has(key);
-        this.#root = this.#root?.delete(key, this.#comparison) ?? null;
+        //this.#root = this.#root?.delete(key, this.#comparison) ?? null;
         return present;
     }
 
@@ -127,11 +175,12 @@ export class AvlTree<K, V> implements Map<K, V> {
 
     set(key: K, value: V): this {
         if (this.#root === null) {
-            this.#root = new AvlNode(key, value);
-        } else {
-            this.#root = this.#root.insert(key, value, this.#comparison);
+            this.#root = new AvlNode(key, value, null);
+            return this;
         }
 
+        const newNode = this.#root.insert(key, value, this.#comparison);
+        this.updateRootFrom(newNode);
         return this;
     }
 
@@ -160,12 +209,41 @@ export class AvlTree<K, V> implements Map<K, V> {
     }
 
     get [Symbol.toStringTag](): string {
+        function render(node: AvlNode<K, V>|null): string {
+            if (node === null) return 'null';
+            else return `(${node.key},${node.value})`;
+        }
+        let level = [this.#root];
+        let result = '\n';
+
+        while (level.length > 0) {
+            result += level.map(render).join(' ') + '\n';
+            level = level.reduce((acc, node) => {
+                if (node !== null)
+                    return acc.concat(node.left, node.right);
+                else return acc;
+            }, [] as (AvlNode<K,V>|null)[]);
+        }
+
+        return result;
+        /*
         let result = "\n";
         for (let [k, v] of this.entries()) {
             result += "    " + k + " => " + v + "\n";
         }
-        return result;
+        return result;*/
+    }
+
+    get balanced(): boolean {
+        if (this.#root === null) return true;
+        const balanceFactor = this.#root.getBalanceFactor();
+        return balanceFactor >= -1 && balanceFactor <= 1;
     }
 
     static [Symbol.species] = AvlTree;
+
+    private updateRootFrom(node: AvlNode<K, V>): void {
+        while (node.parent !== null) node = node.parent;
+        this.#root = node;
+    }
 }

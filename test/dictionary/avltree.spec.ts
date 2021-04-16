@@ -35,4 +35,14 @@ describe("AVL Tree", function() {
         });
     });
 
+    it("is always balanced", function() {
+        jsc.assertForall(jsc.array(jsc.tuple([jsc.integer, jsc.string])), (entries: [key: number, value: string][]) => {
+            const map = new AvlTree(defaultCompare, entries);
+            if (!map.balanced) {
+                console.log(map.toString());
+            }
+            return map.balanced;
+        });
+    });
+
 });
