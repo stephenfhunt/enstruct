@@ -26,17 +26,16 @@ export function genericDictionary(name: string, factory: DictFactory): void {
             jsc.assertForall(jsc.array(jsc.tuple([jsc.integer, jsc.string])), (entries: [key: number, value: string][]) => {
                 const map = factory(defaultCompare, entries);                    
                 const mapKeys = Array.from(map.keys());
-                let good = true;
                 while (mapKeys.length > 0) { 
                     const k: number = mapKeys.shift() as number; // can't be undefined because of the while condition
                     map.delete(k);
 
-                    good &&= !map.has(k);
-                    good &&= mapKeys.every(k => map.has(k));
+                    chai.assert(!map.has(k));
+                    chai.assert(mapKeys.every(k => map.has(k)));
                 }
 
-                good &&= map.size === 0;
-                return good;
+                chai.expect(map.size).to.equal(0);
+                return true;
             });
 
         });
@@ -45,29 +44,27 @@ export function genericDictionary(name: string, factory: DictFactory): void {
             jsc.assertForall(jsc.array(jsc.tuple([jsc.integer, jsc.string])), (entries: [key:number, value: string][]) => {
                 const map = factory(defaultCompare, entries);
 
-                let good = true;
-
                 for (const [key, value] of map) {
-                    good &&= entries.some(([k,v]) => key === k && value === v);
+                    chai.assert(entries.some(([k,v]) => key === k && value === v));
                 }
 
                 for (const [key, value] of map.entries()) {
-                    good &&= entries.some(([k,v]) => key === k && value === v);
+                    chai.assert(entries.some(([k,v]) => key === k && value === v));
                 }
 
                 for (const key of map.keys()) {
-                    good &&= entries.some(([k,v]) => key === k);
+                    chai.assert(entries.some(([k,v]) => key === k));
                 }
 
                 for (const value of map.values()) {
-                    good &&= entries.some(([k,v]) => value === v);
+                    chai.assert(entries.some(([k,v]) => value === v));
                 }
 
                 map.forEach((value, key) => {
-                    good &&= entries.some(([k, v]) => key === k && value === v);
+                    chai.assert(entries.some(([k, v]) => key === k && value === v));
                 });
 
-                return good;
+                return true;
             });
         });
     })
