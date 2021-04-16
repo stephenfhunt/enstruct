@@ -122,19 +122,27 @@ export function bstDelete<K,V>(root: BstNode<K, V>|null, compare: Comparison<K>,
     return root;
 }
 
-export function bstSearch<K,V>(root: BstNode<K, V>|null, compare: Comparison<K>, key: K): V|undefined {
-    if (root === null) return undefined;
+export function bstSearch<K,V>(root: BstNode<K, V>|null, compare: Comparison<K>, key: K): V|null {
+    const node = bstFindNode(root, compare, key);
+    return node?.value ?? null;
+}
+
+export function bstFindNode<K, V, NodeType extends BstNode<K,V>>(root: NodeType|null, 
+                                                                 compare: Comparison<K>, 
+                                                                 key: K): NodeType|null {
+    if (root === null) return null;
 
     const comp = compare(key, root.key);
     if (comp === ComparisonResult.EQUAL) {
-        return root.value;
+        return root as NodeType;
     } else if (comp === ComparisonResult.LESS && root.left !== null) {
-        return bstSearch(root.left, compare, key);
+        return bstFindNode(root.left as NodeType, compare, key);
     } else if (comp === ComparisonResult.GREATER && root.right !== null) {
-        return bstSearch(root.right, compare, key);
+        return bstFindNode(root.right as NodeType, compare, key);
     }
 
-    return undefined;
+    return null;
+
 }
 
 export function bstCount<K, V>(root: BstNode<K, V>|null): number {
@@ -149,4 +157,20 @@ export function *bstTraverse<K, V>(root: BstNode<K, V>|null): IterableIterator<[
         yield [root.key, root.value];
         yield* bstTraverse(root.right);
     }
+}
+
+export function bstFindReplacement<K, V, NodeType extends BstNode<K, V>>(nodeToRemove: NodeType): NodeType|null {
+    let replacement: NodeType|null = null;    
+    if (nodeToRemove.right !== null && nodeToRemove.left !== null) {
+        replacement = bstMin(nodeToRemove.right) as NodeType|null;
+        if (replacement === null) {
+            replacement = nodeToRemove.left as NodeType|null;
+        }
+    } else if (nodeToRemove.left !== null && nodeToRemove.right === null) {
+        replacement = nodeToRemove.left as NodeType|null;
+    } else if (nodeToRemove.right !== null && nodeToRemove.left === null) {
+        replacement = nodeToRemove.right as NodeType|null;
+    }
+
+    return replacement;
 }

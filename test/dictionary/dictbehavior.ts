@@ -30,6 +30,7 @@ export function genericDictionary(name: string, factory: DictFactory): void {
                 while (mapKeys.length > 0) { 
                     const k: number = mapKeys.shift() as number; // can't be undefined because of the while condition
                     map.delete(k);
+
                     good &&= !map.has(k);
                     good &&= mapKeys.every(k => map.has(k));
                 }

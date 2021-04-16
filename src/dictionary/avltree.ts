@@ -1,60 +1,6 @@
 import { DictEntries } from ".";
 import {Comparison, ComparisonResult, defaultCompare} from "..";
-import { bstCount, BstNode, bstSearch, bstTraverse } from "./tree";
-
-function rotateLeft<K, V>(node: AvlNode<K, V>) {
-    const parent = node.parent;
-    const right = node.right;
-    const left = right?.left ?? null;
-
-    if (right !== null) right.left = node;
-    node.parent = right;
-    node.right = left;
-
-    if (left !== null) {
-        left.parent = node;
-    }
-
-    if (parent !== null) {
-        if (node === parent.left) {
-            parent.left = right;
-        } else if (node === parent.right) {
-            parent.right = right;
-        }
-
-        if (right !== null) right.parent = parent;
-    } else {
-        // right is the new root
-        if (right !== null) right.parent = null;
-    }
-}
-
-function rotateRight<K, V>(node: AvlNode<K, V>) {
-    const parent = node.parent;
-    const left = node.left;
-    const right = left?.right ?? null;
-
-    if (left !== null) left.right = node;
-    node.parent = left;
-    node.left = right;
-
-    if (right !== null) {
-        right.parent = node;
-    }
-
-    if (parent !== null) {
-        if (node === parent.left) {
-            parent.left = left;
-        } else if (node === parent.right) {
-            parent.right = left;
-        }
-
-        if (left !== null) left.parent = parent;
-    } else {
-        // left is the new root
-        if (left !== null) left.parent = null;
-    }
-}
+import { bstCount, bstFindNode, bstFindReplacement, BstNode, bstSearch, bstTraverse, rotateLeft, rotateRight } from "./tree";
 
 class AvlNode<K, V> implements BstNode<K, V> {
     left: AvlNode<K, V>|null = null;
@@ -134,6 +80,51 @@ class AvlNode<K, V> implements BstNode<K, V> {
             this.updateHeight();
         }
     }
+
+    balanceAfterDelete(): void {
+        const balanceFactor = this.getBalanceFactor();
+        if (balanceFactor === -2 || balanceFactor === 2) {
+            if (balanceFactor === -2) {
+                const leftLeft = this.left?.left;                
+                const leftLeftHeight = leftLeft?.height ?? 0;
+                const leftRight = this.left?.right;
+                const leftRightHeight = leftRight?.height ?? 0;
+                if (leftLeftHeight >= leftRightHeight) {
+                    rotateRight(this);
+                    this.updateHeight();
+                    if (this.parent !== null) {
+                        this.parent.updateHeight();
+                    }
+                } else {
+                    if (this.left !== null) rotateLeft(this.left);
+                    rotateRight(this);
+
+                    const parent = this.parent;
+                    parent?.left?.updateHeight();
+                    parent?.right?.updateHeight();
+                    parent?.updateHeight();
+                }
+            } else if (balanceFactor === 2) {
+                const rightRight = this.right?.right;
+                const rightRightHeight = rightRight?.height ?? 0;
+                const rightLeft = this.right?.left;
+                const rightLeftHeight = rightLeft?.height ?? 0;
+                if (rightRightHeight >= rightLeftHeight) {
+                    rotateLeft(this);
+                    this.updateHeight();
+                    this.parent?.updateHeight();
+                } else {
+                    if (this.right !== null) rotateRight(this.right);
+                    rotateLeft(this);
+
+                    const parent = this.parent;
+                    parent?.left?.updateHeight();
+                    parent?.right?.updateHeight();
+                    parent?.updateHeight();
+                }
+            }
+        } 
+    }
 }
 
 export class AvlTree<K, V> implements Map<K, V> {
@@ -154,9 +145,37 @@ export class AvlTree<K, V> implements Map<K, V> {
     }
 
     delete(key: K): boolean {
-        const present = this.has(key);
-        //this.#root = this.#root?.delete(key, this.#comparison) ?? null;
-        return present;
+        const nodeToRemove = bstFindNode(this.#root, this.#comparison, key);
+
+        if (nodeToRemove !== null) {
+            const replacementNode = bstFindReplacement(nodeToRemove);
+            let nodeToAdjust = replacementNode?.parent ?? null;
+            if (nodeToAdjust === null) {
+                nodeToAdjust = nodeToRemove.parent;
+            }
+
+            if (nodeToAdjust !== null && nodeToAdjust === nodeToRemove) {
+                nodeToAdjust = replacementNode;
+            }
+
+            this.replaceWith(nodeToRemove, replacementNode);
+
+            let rootSearchStart = null;
+            while (nodeToAdjust !== null) {
+                rootSearchStart = nodeToAdjust;
+                nodeToAdjust.updateHeight();
+                nodeToAdjust.balanceAfterDelete(); 
+                nodeToAdjust = nodeToAdjust.parent;
+            }
+
+            // the rebalance might have changed the root node,
+            // so go find it to make sure its up to date
+            if (rootSearchStart !== null)
+                this.updateRootFrom(rootSearchStart);
+
+            return true;
+        }
+        else return false;
     }
 
     forEach(callbackfn: (value: V, key: K, map: Map<K, V>) => void, thisArg?: any): void {
@@ -166,7 +185,7 @@ export class AvlTree<K, V> implements Map<K, V> {
     }
 
     get(key: K): V | undefined {
-        return bstSearch(this.#root, this.#comparison, key);
+        return bstSearch(this.#root, this.#comparison, key) ?? undefined;
     }
 
     has(key: K): boolean {
@@ -209,29 +228,7 @@ export class AvlTree<K, V> implements Map<K, V> {
     }
 
     get [Symbol.toStringTag](): string {
-        function render(node: AvlNode<K, V>|null): string {
-            if (node === null) return 'null';
-            else return `(${node.key},${node.value})`;
-        }
-        let level = [this.#root];
-        let result = '\n';
-
-        while (level.length > 0) {
-            result += level.map(render).join(' ') + '\n';
-            level = level.reduce((acc, node) => {
-                if (node !== null)
-                    return acc.concat(node.left, node.right);
-                else return acc;
-            }, [] as (AvlNode<K,V>|null)[]);
-        }
-
-        return result;
-        /*
-        let result = "\n";
-        for (let [k, v] of this.entries()) {
-            result += "    " + k + " => " + v + "\n";
-        }
-        return result;*/
+        return "AvlTree";
     }
 
     get balanced(): boolean {
@@ -245,5 +242,60 @@ export class AvlTree<K, V> implements Map<K, V> {
     private updateRootFrom(node: AvlNode<K, V>): void {
         while (node.parent !== null) node = node.parent;
         this.#root = node;
+    }
+
+    private replaceWith(toRemove: AvlNode<K,V>, 
+                        replacement: AvlNode<K,V>|null): void {
+        if (replacement !== null) {
+            const replacementLeft = replacement.left;
+            const replacementRight = replacement.right;
+
+            const toRemoveLeft = toRemove.left;
+            if (toRemoveLeft !== null && toRemoveLeft !== replacement) {
+                replacement.left = toRemoveLeft;
+                toRemoveLeft.parent = replacement;
+            }
+
+            const toRemoveRight = toRemove.right;
+            if (toRemoveRight !== null && toRemoveRight !== replacement) {
+                replacement.right = toRemoveRight;
+                toRemoveRight.parent = replacement;
+            }
+
+            const replacementParent = replacement.parent;
+            if (replacementParent !== null && replacementParent !== toRemove) {
+                const parentLeft = replacementParent.left;
+                const parentRight = replacementParent.right;
+                if (parentLeft !== null && parentLeft === replacement) {
+                    replacementParent.left = replacementRight;
+                    if (replacementRight !== null) {
+                        replacementRight.parent = replacementParent;
+                    }
+                } else if (parentRight !== null && parentRight === replacement) {
+                    replacementParent.right = replacementLeft;
+                    if (replacementLeft !== null) {
+                        replacementLeft.parent = replacementParent;
+                    }
+                }
+            }
+        }
+
+        const parent = toRemove.parent;
+        if (parent === null) {
+            this.#root = replacement;
+            if (this.#root !== null) this.#root.parent = null;
+        } else if (parent.left !== null &&
+                   this.#comparison(parent.left.key, toRemove.key) === ComparisonResult.EQUAL) {
+            parent.left = replacement;
+            if (replacement !== null) {
+                replacement.parent = parent;
+            }
+        } else if (parent.right !== null &&
+                   this.#comparison(parent.right.key, toRemove.key) === ComparisonResult.EQUAL) {
+            parent.right = replacement;
+            if (replacement !== null) {
+                replacement.parent = parent;
+            }
+        }
     }
 }
