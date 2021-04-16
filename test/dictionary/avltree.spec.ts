@@ -1,5 +1,4 @@
 import jsc = require("jsverify");
-import chai = require("chai");
 import {AvlTree} from "../../dist/dictionary/avltree";
 import {genericDictionary} from "./dictbehavior";
 import { defaultCompare } from "../../dist";
